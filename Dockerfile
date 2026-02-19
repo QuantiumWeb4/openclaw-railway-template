@@ -43,11 +43,27 @@ RUN set -eux; \
     sed -i -E 's/"openclaw"[[:space:]]*:[[:space:]]*"workspace:[^"]+"/"openclaw": "*"/g' "$f"; \
   done
 
-RUN pnpm install --no-frozen-lockfile
-RUN pnpm build
-ENV OPENCLAW_PREFER_PNPM=1
-RUN pnpm ui:install && pnpm ui:build
+# FIX: Add memory and cache optimizations for UI build
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+ENV NODE_ENV=production
 
+# Install dependencies with better cache handling
+RUN pnpm install --no-frozen-lockfile --prefer-offline
+
+# Build main project
+RUN pnpm build
+
+# FIX: UI build with proper error handling and memory
+ENV OPENCLAW_PREFER_PNPM=1
+RUN pnpm config set store-dir /tmp/pnpm-store \
+  && pnpm store prune \
+  && pnpm ui:install --no-cache \
+  && pnpm ui:build --no-cache || (echo "UI build failed. Retrying with clean install..." \
+     && rm -rf node_modules ui/node_modules \
+     && pnpm install --no-frozen-lockfile \
+     && pnpm build \
+     && pnpm ui:install --no-cache \
+     && pnpm ui:build --no-cache)
 
 # Runtime image
 FROM node:22-bookworm
