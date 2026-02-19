@@ -1,5 +1,10 @@
 [build]
 builder = "dockerfile"
+buildCommand = "docker build -t openclaw ."
+
+[build.args]
+NODE_OPTIONS = "--max-old-space-size=4096"
+OPENCLAW_VERSION = "v2026.2.15"
 
 [deploy]
 healthcheckPath = "/setup/healthz"
@@ -8,3 +13,5 @@ restartPolicyType = "on_failure"
 
 [variables]
 PORT = "8080"
+NODE_OPTIONS = "--max-old-space-size=4096"
+OPENCLAW_PREFER_PNPM = "1"
